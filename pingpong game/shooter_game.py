@@ -4,13 +4,15 @@ from time import time as timer
 
 width = 700
 height = 500
-lost = 0
-score = 0
-lives = 3
-rel_time = False
-num_fire = 0
+speed_x = 7     
+speed_y = 7
 
+blue = (200, 255, 255)
 
+window = display.set_mode((width,height))
+display.set_caption("Ping Pong game")
+
+window.fill(blue)
 
 class GameSprite(sprite.Sprite):
     def __init__(self, player_image, player_x, player_y, size_x,size_y, player_speed):
@@ -25,88 +27,59 @@ class GameSprite(sprite.Sprite):
     def reset(self):
         window.blit(self.image, (self.rect.x,self.rect.y))
 
-    def transfer(self, x, y):
-        window.blit(self.image, (x, y ))
-
 
 class Player(GameSprite):
-    def update(self):
+    def update1(self):
         keys = key.get_pressed()
         # left
-        if keys[K_LEFT] and self.rect.x > 0 :
-            self.rect.x -= self.speed
+        if keys[K_UP] and self.rect.y > 0 :
+            self.rect.y -= self.speed
         # right
-        if keys[K_RIGHT] and self.rect.x < width - 80:
-            self.rect.x += self.speed
+        if keys[K_DOWN] and self.rect.y < height - 150:
+            self.rect.y += self.speed
 
-    def fire(self):
-        # create bullet 
-        bullet = Bullet("bullet.png", self.rect.centerx - 8 , self.rect.top, 15, 20, 15)
-        # add bullet to the group of bullets 
-        bullets.add(bullet)
+    def update2(self):
+        keys = key.get_pressed()
+        # left
+        if keys[K_w] and self.rect.y > 0 :
+            self.rect.y -= self.speed
+        # right
+        if keys[K_s] and self.rect.y < height - 150:
+            self.rect.y += self.speed
 
 
-class Enemy(GameSprite):
+class Ball(GameSprite):
     def update(self):
-        # move from top to button
-        self.rect.y += self.speed
-        global lost
-        # check if reaching the button
-        if self.rect.y >= (height - 20): 
-            # reset y and x
-            self.rect.y = 0
-            self.rect.x = randint(0, width - 80)
-            if self.player_image == "ufo.png":
-                lost += 1
+        global speed_y, speed_x, player1, player2
 
+        self.rect.x += speed_x
+        self.rect.y += speed_y
+        
+        # TODO: change direction = multiply by -1
 
-class Bullet(GameSprite):
-    def update(self):
-        # move from bottom to top 
-        self.rect.y -= self.speed
+        # collision with up and down
+        if self.rect.y < 0 or self.rect.y > height-50:
+            speed_y *= -1
+        # collision with paddles
+        if sprite.collide_rect(player1, self) or sprite.collide_rect(player2, self): 
+            speed_x *= -1
+player1 = Player("paddle.png", 650, 150, 50 ,150, 15)
+player2 = Player("paddle.png", 5, 150, 50 ,150, 15)
 
-        # check if reach the top
-        if self.rect.y <= 0:
-            self.kill()
-
-
-window = display.set_mode((width, height))
-display.set_caption("Shooter")
-
-# background
-background = transform.scale(image.load("galaxy.jpg"), (width, height))
-
-# bullets group
-bullets = sprite.Group()
-
-# sprites
-player = Player("rocket.png", 350, 400, 50, 100, 10)
-
-monsters = sprite.Group()
-for i in range(5):
-    monsters.add(Enemy("ufo.png", randint(0, width - 80), 0, 60, 40, randint(1, 5)))
-
-asteroids = sprite.Group()
-for i in range(2):
-    asteroids.add(Enemy("asteroid.png", randint(0, width - 80), 0, 60, 40, randint(1, 5)))
+ball =Ball("ball.png", 350, 200, 50, 50, 7)
 
 # music
-mixer.init()
-mixer.music.load("space.ogg")
-mixer.music.play()
-fire = mixer.Sound('fire.ogg')
+# mixer.init()
+# mixer.music.load("space.ogg")
+# mixer.music.play()
 
 # font
 font.init()
 style = font.SysFont("Arial", 36)
 style2 = font.SysFont("Arial", 70)
 
-text_lost = style.render("Missed:"+ str(lost), 1 ,(255, 255, 255))
-text_score = style.render("Score:"+ str(score), 1 ,(255, 255, 255))
-win = style2.render("You win", True, (10, 255, 10))
-lose = style2.render("You lose", True, (255, 10, 10))
-
-life_text = style2.render(str(lives) , True, (255, 255, 255))
+win1 = style.render("PLAYER 1 WINS", True, (0,0,0))
+win2 = style.render("PLAYER 2 WINS", True, (0,0,0))
 
 # clock
 fps = 60
@@ -116,95 +89,34 @@ clock = time.Clock()
 game = True
 finish = False
 while game:
-
     for e in event.get():
         if e.type == QUIT:
             game = False
-
-        elif e.type == KEYDOWN:
-            if e.key == K_SPACE:
-            # check fire state
-                if num_fire < 5 and rel_time == False:
-                    # sound
-                    fire.play()
-                    # bullet
-                    player.fire()
-                    num_fire += 1
-                     
-            # check reload state
-            if num_fire >= 5 and rel_time == False:
-                last_time = timer()
-                rel_time = True
-            
-
+   
 
 
 
     if not finish:
-        window.blit(background, (0,0))
+       window.fill(blue)
+       player1.update1()
+       player2.update2()
+       ball.update()
+       
 
-        player.update()
-        player.reset()
-        
-        monsters.draw(window)
-        monsters.update() 
+       player1.reset()
+       player2.reset()
+       ball.reset()
 
-        asteroids.draw(window)
-        asteroids.update() 
-
-        bullets.draw(window)
-        bullets.update()
-
-        text_lost = style.render("Missed:"+ str(lost), 1 ,(255, 255, 255))
-        text_score = style.render("Score:"+ str(score), 1 ,(255, 255, 255))
-        life_text = style2.render(str(lives) , True, (255, 255, 255))
-
-        window.blit(text_score, (10, 10))
-        window.blit(text_lost, (10, 40))
-        window.blit(life_text, (width-50, 10))
+       # player1 winning state
+       if ball.rect.x < 0:
+           window.blit(win1 , (350, 150))
+           finish = True
 
 
-        # check reloading state
-        if rel_time == True:
-
-            # check remaining time 
-            now_time = timer()
-            if (now_time - last_time) < 3:
-                reloading = style.render("wait...reload", True, (150, 0, 0))
-                window.blit(reloading, (260,450))
-            else:
-                # fire state
-                num_fire = 0
-                rel_time = False
-        # win state
-        if score >= 10:
-            finish = True
-            window.blit(win, (250, 200))
-
-
-        # checker for collision bullets with monsters 
-        monsters_list_bullets = sprite.groupcollide(monsters, bullets, True, True)
-        for m in monsters_list_bullets:
-            score += 1
-            monsters.add(Enemy("ufo.png", randint(0, width - 80), 0, 60, 40, randint(1, 5)))
-
-        # collision enemy with player
-        monsters_list = sprite.spritecollide(player, monsters, True)
-        asteroids_list = sprite.spritecollide(player, asteroids, True)
-        # not empty == collision
-        if monsters_list or asteroids_list:
-            lives -= 1
-
-        if lives <= 0:
-            finish = True
-            window.blit(lose, (300, 200))
-
-        # miss 3 enemies
-        if lost >= 3:
-            finish = True
-            window.blit(lose, (250, 200))
-
-        # win state
+       #player2 winning state
+       if ball.rect.x < 0:
+           window.blit(win2 , (350, 150))
+           finish = True
 
     display.update()
     clock.tick(fps)
